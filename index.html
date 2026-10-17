@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>html{color-scheme:dark}body{margin:0}</style>
+</head>
+<body>
+<title>电子拜拜</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;700;900&family=Ma+Shan+Zheng&display=swap" rel="stylesheet">
+<style>
+/* Layout: one 9:16 shrine stage. Header on top, a flexible middle for the active step,
+   and a fixed foot where the wish box (left) and the big omikuji tube (right) always stand. */
+:root{
+  --night:#241c4a;
+  --torii:#c8372d;
+  --wood:#6a4429;
+  --wood-d:#3b2416;
+  --washi:#f4ecd6;
+  --gold:#d6ad4f;
+  --ink:#2a1d14;
+  --serif:"Noto Serif SC","Songti SC","STSong","Source Han Serif SC",serif;
+  --brush:"Ma Shan Zheng","Kaiti SC","STKaiti",serif;
+  --fh:clamp(230px,36cqh,320px);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--night);color:var(--washi);font-family:var(--serif);overflow:hidden;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+.stage{position:relative;height:100%;width:100%;max-width:480px;margin-inline:auto;container-type:size;display:flex;flex-direction:column;overflow:hidden;
+  background:
+    radial-gradient(62% 30% at 50% 66%,rgba(255,214,150,.55),transparent 70%),
+    linear-gradient(180deg,#2a2860 0%,#59407f 28%,#b9587b 54%,#ef9f7b 76%,#f7cd97 100%);
+  box-shadow:0 0 60px rgba(0,0,0,.45)}
+
+/* scenery */
+.lanterns{position:absolute;top:0;left:0;width:100%;aspect-ratio:400/68;z-index:5;pointer-events:none;filter:drop-shadow(0 0 6px rgba(255,170,70,.6))}
+.hills{position:absolute;left:0;right:0;bottom:46px;width:100%;height:auto;z-index:1;pointer-events:none}
+.ground{position:absolute;left:0;right:0;bottom:0;height:54px;z-index:2;
+  background:
+    radial-gradient(circle at 20% 30%,rgba(255,255,255,.22) 0 1px,transparent 1.6px) 0 0/14px 11px,
+    radial-gradient(circle at 70% 70%,rgba(60,40,30,.28) 0 1px,transparent 1.6px) 0 0/17px 13px,
+    linear-gradient(#c3a78f,#8f7664)}
+
+/* header */
+.head{position:relative;z-index:15;padding:calc(100cqw*68/400 + 2px) 16px 0;display:grid;gap:8px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{margin:0;font-weight:900;font-size:clamp(24px,7.4cqw,32px);letter-spacing:.16em;display:flex;align-items:center;gap:10px;text-shadow:0 2px 0 rgba(0,0,0,.25)}
+.hanko{width:1.2em;height:1.2em;background:var(--torii);color:#fff;font-size:.6em;display:grid;place-items:center;border-radius:3px;letter-spacing:0;font-weight:700;rotate:-4deg}
+.snd{font:700 12px/1 var(--serif);letter-spacing:.1em;background:rgba(20,14,40,.4);border:1px solid rgba(244,236,214,.4);border-radius:999px;padding:8px 13px;cursor:pointer}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:26px}
+.hint{margin:0;font-size:15px;font-weight:500;letter-spacing:.06em;text-shadow:0 1px 8px rgba(30,16,50,.7)}
+.steps{list-style:none;margin:0;padding:0;display:flex;gap:4px;flex:none}
+.steps li{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:1px solid rgba(244,236,214,.5);background:rgba(20,14,40,.35);opacity:.7;transition:.3s}
+.steps li.on{background:var(--gold);color:var(--ink);border-color:var(--gold);opacity:1;scale:1.12}
+.steps li.done{background:rgba(244,236,214,.85);color:var(--ink);opacity:.9}
+
+/* middle */
+.pick{position:relative;z-index:6;flex:1;min-height:0;display:grid;place-items:center;padding:6px 16px}
+.pane{grid-area:1/1;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;animation:rise .5s both}
+.racks{gap:12px}
+.rack{position:relative;display:flex;justify-content:center;gap:6px;padding-top:16px;width:100%}
+.rack::before{content:"";position:absolute;left:-4px;right:-4px;top:6px;height:10px;border-radius:5px;background:linear-gradient(#8a5c37,#4b2f1c);box-shadow:0 3px 6px rgba(0,0,0,.35)}
+.scroll{--sw:min(21cqw,9.6cqh);width:var(--sw);position:relative;padding:0;border:0;background:none;cursor:pointer;transform-origin:50% 0;
+  animation:sway 5.4s ease-in-out infinite;animation-delay:calc(var(--i)*-.8s);
+  filter:drop-shadow(0 6px 5px rgba(0,0,0,.35));transition:translate .25s,scale .25s,opacity .25s,filter .25s}
+.scroll::before{content:"";position:absolute;left:50%;top:-10px;width:2px;height:12px;background:#d9c48a}
+.scroll svg{display:block;width:100%;height:auto}
+.scroll:hover,.scroll:focus-visible{translate:0 -4px;scale:1.05}
+.scroll.picked{scale:1.14;translate:0 -6px;z-index:2;filter:drop-shadow(0 0 14px var(--c)) drop-shadow(0 8px 6px rgba(0,0,0,.4))}
+.racks.has-pick .scroll:not(.picked){opacity:.35;scale:.94}
+
+.prompt{margin:0;font-size:19px;font-weight:700;letter-spacing:.14em;text-align:center;text-shadow:0 2px 10px rgba(30,16,50,.8)}
+.beads{display:flex;gap:14px}
+.beads i{width:18px;height:18px;border-radius:50%;border:2px solid rgba(244,236,214,.8);background:rgba(20,14,40,.35);transition:.3s}
+.beads i.on{background:var(--gold);border-color:#fff3c4;box-shadow:0 0 14px var(--gold)}
+.arrow{font-size:30px;line-height:1;align-self:flex-end;margin-right:12%;animation:nudge 1.2s ease-in-out infinite;text-shadow:0 2px 10px rgba(30,16,50,.8)}
+.bellrig{position:relative;width:min(32cqw,128px);padding:22px 0 0;border:0;background:none;cursor:pointer}
+.bellrig::before{content:"";position:absolute;top:0;left:50%;translate:-50% 0;width:190%;height:12px;border-radius:6px;background:linear-gradient(#8a5c37,#4b2f1c);box-shadow:0 3px 6px rgba(0,0,0,.35)}
+.bellrig svg{display:block;width:100%;height:auto;transform-origin:50% 0;filter:drop-shadow(0 8px 8px rgba(0,0,0,.35))}
+.bellrig.ring svg{animation:swing 1.9s ease-out}
+
+/* foot: wish box + tube */
+.foot{position:relative;flex:none;height:var(--fh)}
+.box{position:absolute;left:3%;bottom:16px;width:min(47cqw,calc(var(--fh)*.95));aspect-ratio:200/150}
+.box svg{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.box .back{z-index:10}
+.box .front{z-index:30}
+.box .slot{position:absolute;left:23%;top:26.5%;width:54%;height:5%;pointer-events:none}
+.box.bump svg{animation:bump .45s ease-out}
+.tube{position:absolute;right:3%;bottom:10px;height:calc(var(--fh) - 6px);aspect-ratio:160/290;z-index:12;padding:0;border:0;background:none;cursor:pointer;transform-origin:50% 100%}
+.tube svg{display:block;width:100%;height:100%;overflow:visible}
+.tube.hot svg{animation:glow 1.6s ease-in-out infinite}
+.tube.shake{animation:shake .85s ease-in-out}
+.tube.shake .stick{animation:jig .11s ease-in-out 8 alternate}
+.stick{animation-delay:calc(var(--n)*-.013s)}
+
+/* note (also used for the result card) */
+.modal{position:absolute;inset:0;z-index:40;display:flex;flex-direction:column;align-items:center;gap:18px;padding:max(9cqh,44px) 16px 16px;background:rgba(18,12,38,.68);backdrop-filter:blur(3px);animation:fade .25s both}
+.modal.leaving{background:transparent;backdrop-filter:none;transition:background .35s}
+.modal.leaving .actions,.modal.hide-note .note{visibility:hidden}
+.actions{display:flex;gap:12px}
+.note{--c:#2f5fa8;--on:#fff;--ph:min(250px,34cqh);width:min(300px,80cqw);position:relative;filter:drop-shadow(0 14px 18px rgba(0,0,0,.4))}
+.roll{position:relative;height:20px;border-radius:10px;margin-inline:6px;z-index:2;
+  background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 45%,rgba(0,0,0,.28)),var(--c)}
+.roll i{position:absolute;top:-4px;bottom:-4px;width:11px;border-radius:3px;background:linear-gradient(90deg,#8a6a22,#f4de92 45%,#9b7a2c)}
+.roll i:first-child{left:-9px}
+.roll i:last-child{right:-9px}
+.paper{display:grid;grid-template-rows:0fr;transition:grid-template-rows .7s cubic-bezier(.3,.7,.2,1);margin-inline:12px;background:var(--washi)}
+.note.open .paper{grid-template-rows:1fr}
+.paper-in{min-height:0;overflow:hidden}
+.paper-body{min-height:var(--ph);padding:16px 18px 12px;display:flex;flex-direction:column;gap:8px;color:var(--ink);
+  background:linear-gradient(#f6eed9,#eee1bf);
+  outline:1px solid color-mix(in srgb,var(--c) 60%,transparent);outline-offset:-6px}
+.tag{display:flex;align-items:center;gap:8px;font-weight:700;letter-spacing:.2em;font-size:14px}
+.seal{width:24px;height:24px;display:grid;place-items:center;background:var(--c);color:var(--on);font-family:var(--brush);font-size:16px;border-radius:3px;letter-spacing:0}
+.wish{flex:1;min-height:0;width:100%;margin:0;padding:0;border:0;background:none;resize:none;color:var(--ink);color-scheme:light;
+  font-family:var(--brush);font-size:23px;line-height:1.7;overflow:hidden;white-space:pre-wrap;word-break:break-all;
+  background-image:repeating-linear-gradient(transparent 0 calc(1.7em - 1px),rgba(120,90,50,.28) calc(1.7em - 1px) 1.7em);background-attachment:local}
+textarea.wish{outline:none;overflow:auto}
+textarea.wish::placeholder{color:rgba(42,29,20,.4);font-family:var(--serif);font-size:15px}
+.count{text-align:right;font-size:12px;color:rgba(42,29,20,.55);font-variant-numeric:tabular-nums}
+.primary,.ghost{font:900 16px/1 var(--serif);letter-spacing:.3em;padding:13px 24px 13px 28px;border-radius:3px;cursor:pointer}
+.primary{border:0;background:var(--torii);color:#fff;box-shadow:0 3px 0 #7d1f18,0 8px 16px rgba(0,0,0,.3)}
+.primary:active{translate:0 2px;box-shadow:0 1px 0 #7d1f18}
+.primary:disabled{opacity:.45;cursor:not-allowed}
+.ghost{background:rgba(20,14,40,.4);border:1px solid rgba(244,236,214,.6)}
+
+/* fold + fly */
+.fly{position:absolute;z-index:45;perspective:1000px;pointer-events:none}
+.flyer{position:absolute;left:0;width:100%;transform-style:preserve-3d}
+.p{position:absolute;left:0;width:100%;transform-style:preserve-3d}
+.pa{bottom:100%;transform-origin:50% 100%}
+.pc{top:100%;transform-origin:50% 0}
+.face{position:absolute;inset:0;overflow:hidden;backface-visibility:hidden}
+.face.back{transform:rotateX(180deg);background:linear-gradient(#efe4c4,#e4d5ac);box-shadow:inset 0 0 0 1px rgba(150,115,50,.45),inset 0 0 14px rgba(120,90,40,.25)}
+.in{position:absolute;left:0}
+.tie{position:absolute;left:50%;top:33.333%;height:33.333%;width:13%;translate:-50% 0;z-index:6;opacity:0;
+  background:linear-gradient(90deg,rgba(255,255,255,.3),transparent 40%,rgba(0,0,0,.2)),var(--c)}
+
+/* done */
+.done{position:absolute;inset:0;z-index:42;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;padding:16px;background:rgba(18,12,38,.55);animation:fade .4s both}
+.result .paper-body{align-items:center;justify-content:center;text-align:center;gap:10px;min-height:min(230px,30cqh)}
+.result h2{margin:4px 0 0;font-size:38px;font-weight:900;letter-spacing:.2em;padding-left:.2em}
+.result .sub{margin:0;font-size:16px;font-weight:700;letter-spacing:.3em;padding-left:.3em;color:var(--c)}
+.result .line{margin:6px 0 0;font-size:14px;line-height:1.7;letter-spacing:.06em}
+.petals{position:absolute;inset:0;z-index:43;pointer-events:none;overflow:hidden}
+.petals i{position:absolute;top:-20px;width:var(--s);height:calc(var(--s)*.75);background:#f7b9c8;border-radius:100% 0 100% 0;animation:fall var(--d) linear var(--dl) infinite}
+
+.toast{position:absolute;left:50%;bottom:calc(var(--fh) + 12px);translate:-50% 0;z-index:60;max-width:86%;padding:10px 16px;border-radius:3px;background:rgba(20,14,40,.92);border:1px solid var(--gold);font-size:13px;letter-spacing:.06em;text-align:center}
+@keyframes sway{0%,100%{rotate:-1.6deg}50%{rotate:1.6deg}}
+@keyframes rise{from{opacity:0;translate:0 14px}to{opacity:1;translate:0 0}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes nudge{50%{translate:6px 6px}}
+@keyframes bump{30%{translate:0 4px;scale:1.02 .97}60%{translate:0 -2px}}
+@keyframes glow{50%{filter:drop-shadow(0 0 16px rgba(255,216,120,.95))}}
+@keyframes shake{0%,100%{rotate:0deg}10%{rotate:-8deg;translate:-5px 0}22%{rotate:7deg;translate:5px 0}34%{rotate:-6deg;translate:-4px 0}46%{rotate:5deg;translate:4px 0}60%{rotate:-3deg}74%{rotate:2deg}88%{rotate:-1deg}}
+@keyframes jig{from{translate:0 0}to{translate:0 -9px}}
+@keyframes swing{0%{rotate:0deg}12%{rotate:16deg}30%{rotate:-12deg}50%{rotate:8deg}70%{rotate:-4deg}100%{rotate:0deg}}
+@keyframes fall{to{translate:var(--x) 112cqh;rotate:540deg}}
+@media (prefers-reduced-motion:reduce){
+  .scroll,.tube.hot svg,.arrow,.petals i{animation:none}
+  .pane,.modal,.done{animation:none}
+  .paper{transition:none}
+}
+</style>
+
+<main class="stage" id="stage">
+  <svg class="lanterns" id="lanterns" viewBox="0 0 400 68" aria-hidden="true">
+    <defs><radialGradient id="lg" cx=".5" cy=".4" r=".65"><stop offset="0" stop-color="#ffe3a0"/><stop offset=".55" stop-color="#f58f3b"/><stop offset="1" stop-color="#c8372d"/></radialGradient></defs>
+    <path d="M-10 14 Q100 52 200 18 Q300 52 410 14" fill="none" stroke="#2a1612" stroke-width="1.6"/>
+  </svg>
+
+  <svg class="hills" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax meet" aria-hidden="true">
+    <defs>
+      <linearGradient id="pil" x1="0" x2="1"><stop offset="0" stop-color="#e0503f"/><stop offset=".6" stop-color="#c63a2f"/><stop offset="1" stop-color="#9c261f"/></linearGradient>
+      <linearGradient id="mist" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7cd97" stop-opacity="0"/><stop offset="1" stop-color="#f7cd97" stop-opacity=".45"/></linearGradient>
+      <symbol id="sugi" viewBox="0 0 26 70"><path d="M13 0 L22 22 H17 L24 42 H16 L25 62 H15 V70 H11 V62 H1 L10 42 H2 L9 22 H4Z"/></symbol>
+    </defs>
+    <path d="M0 200 C50 150 90 150 130 185 C170 215 210 140 260 160 C310 180 350 150 400 190 L400 300 L0 300Z" fill="#6a4a88" opacity=".9"/>
+    <g fill="#4a3569" opacity=".9"><use href="#sugi" x="104" y="150" width="15" height="42"/><use href="#sugi" x="268" y="126" width="15" height="42"/><use href="#sugi" x="296" y="138" width="13" height="36"/></g>
+    <path d="M0 245 C70 215 120 240 190 228 C260 216 320 246 400 226 L400 300 L0 300Z" fill="#35264f"/>
+    <g fill="#2a1f43"><use href="#sugi" x="6" y="186" width="24" height="64"/><use href="#sugi" x="30" y="198" width="19" height="52"/><use href="#sugi" x="362" y="176" width="26" height="70"/><use href="#sugi" x="344" y="196" width="19" height="52"/></g>
+    <g>
+      <rect x="70" y="68" width="18" height="224" fill="url(#pil)"/><rect x="312" y="68" width="18" height="224" fill="url(#pil)"/>
+      <rect x="66" y="258" width="26" height="34" fill="#2a1612"/><rect x="308" y="258" width="26" height="34" fill="#2a1612"/>
+      <rect x="58" y="112" width="284" height="14" fill="url(#pil)"/>
+      <rect x="191" y="97" width="18" height="15" fill="#c63a2f"/><rect x="194" y="99" width="12" height="11" fill="#1e120d" stroke="#d6ad4f" stroke-width="1"/>
+      <rect x="48" y="88" width="304" height="9" fill="#a92d24"/>
+      <path d="M26 40 Q200 80 374 40 L370 50 Q200 90 30 50Z" fill="#2a1612"/>
+      <path d="M30 50 Q200 90 370 50 L366 66 Q200 106 34 66Z" fill="url(#pil)"/>
+    </g>
+    <rect x="0" y="120" width="400" height="180" fill="url(#mist)"/>
+  </svg>
+  <div class="ground"></div>
+
+  <header class="head">
+    <div class="top">
+      <h1><span class="hanko" aria-hidden="true">愿</span>电子拜拜</h1>
+      <button class="snd" id="snd" type="button" aria-pressed="false">声音 开</button>
+    </div>
+    <div class="row">
+      <p class="hint" id="hint" aria-live="polite">选一幅卷轴，说出你所求</p>
+      <ol class="steps" id="steps" aria-label="进度">
+        <li data-s="1" title="选愿">选</li><li data-s="2" title="写愿">写</li><li data-s="3" title="投愿">投</li><li data-s="4" title="祈祷">祈</li>
+      </ol>
+    </div>
+  </header>
+
+  <section class="pick" id="pick">
+    <div class="pane racks" id="racks"><div class="rack" id="rack1"></div><div class="rack" id="rack2"></div></div>
+    <div class="pane" id="paneShake" hidden>
+      <div class="beads" id="beads" aria-label="摇签进度"><i></i><i></i><i></i></div>
+      <p class="prompt">点一下签筒，摇一摇</p>
+      <span class="arrow" aria-hidden="true">↘</span>
+    </div>
+    <div class="pane" id="paneBell" hidden>
+      <button class="bellrig" id="bell" type="button" aria-label="铃，点击敲响">
+        <svg viewBox="0 0 120 220" aria-hidden="true">
+          <defs>
+            <pattern id="rope" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><rect width="14" height="7" fill="#c8372d"/><rect y="7" width="14" height="7" fill="#f4ecd6"/></pattern>
+            <radialGradient id="bg" cx=".38" cy=".32" r=".8"><stop offset="0" stop-color="#fbeab0"/><stop offset=".5" stop-color="#d4a238"/><stop offset="1" stop-color="#7d5a1b"/></radialGradient>
+          </defs>
+          <rect x="53" y="0" width="14" height="100" fill="url(#rope)"/>
+          <ellipse cx="60" cy="102" rx="12" ry="7" fill="#c8372d"/>
+          <ellipse cx="60" cy="112" rx="9" ry="6" fill="none" stroke="#b58a2c" stroke-width="3"/>
+          <circle cx="60" cy="152" r="40" fill="url(#bg)"/>
+          <path d="M21 158 Q60 174 99 158" fill="none" stroke="#5c4012" stroke-width="3"/>
+          <circle cx="60" cy="174" r="6" fill="#3b2a10"/>
+          <ellipse cx="46" cy="136" rx="9" ry="14" fill="#fff" opacity=".3" transform="rotate(25 46 136)"/>
+        </svg>
+      </button>
+      <p class="prompt">点一下铃</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <div class="box" id="box">
+      <svg class="back" viewBox="0 0 200 150" aria-hidden="true">
+        <ellipse cx="100" cy="147" rx="96" ry="5" fill="#000" opacity=".28"/>
+        <polygon points="36,30 164,30 182,62 18,62" fill="#a77446"/>
+        <g stroke="#5b3a1f" stroke-width="1.2" opacity=".8"><line x1="33" y1="35" x2="167" y2="35"/><line x1="30" y1="52" x2="170" y2="52"/><line x1="27" y1="57" x2="173" y2="57"/></g>
+        <polygon points="46,40 154,40 157,47 43,47" fill="#140a06"/>
+      </svg>
+      <div class="slot" id="slot"></div>
+      <svg class="front" viewBox="0 0 200 150" aria-hidden="true">
+        <defs>
+          <linearGradient id="bw" x1="0" x2="1"><stop offset="0" stop-color="#4a2e1b"/><stop offset=".5" stop-color="#6e4628"/><stop offset="1" stop-color="#43291a"/></linearGradient>
+          <linearGradient id="gd" x1="0" x2="1"><stop offset="0" stop-color="#9b7a2c"/><stop offset=".5" stop-color="#f4de92"/><stop offset="1" stop-color="#9b7a2c"/></linearGradient>
+        </defs>
+        <polygon points="26.4,47 173.6,47 182,62 18,62" fill="#a77446"/>
+        <g stroke="#5b3a1f" stroke-width="1.2" opacity=".8"><line x1="30" y1="52" x2="170" y2="52"/><line x1="27" y1="57" x2="173" y2="57"/></g>
+        <polygon points="18,62 182,62 188,146 12,146" fill="url(#bw)"/>
+        <g stroke="#2a190f" stroke-width="1.2" opacity=".7"><line x1="58" y1="72" x2="60" y2="146"/><line x1="100" y1="72" x2="100" y2="146"/><line x1="142" y1="72" x2="140" y2="146"/></g>
+        <polygon points="18,62 182,62 183,72 17,72" fill="#2a190f"/>
+        <g fill="url(#gd)"><circle cx="30" cy="67" r="2.2"/><circle cx="70" cy="67" r="2.2"/><circle cx="130" cy="67" r="2.2"/><circle cx="170" cy="67" r="2.2"/></g>
+        <rect x="74" y="82" width="52" height="50" fill="#f1e6c8" stroke="url(#gd)" stroke-width="2.5"/>
+        <text x="100" y="124" text-anchor="middle" font-size="42" fill="#2a1d14" style="font-family:var(--brush)">愿</text>
+        <rect x="12" y="140" width="176" height="6" fill="#2a190f" opacity=".6"/>
+      </svg>
+    </div>
+
+    <button class="tube" id="tube" type="button" aria-label="签筒，点击摇一摇">
+      <svg viewBox="0 0 160 290" aria-hidden="true">
+        <defs>
+          <linearGradient id="tw" x1="0" x2="1"><stop offset="0" stop-color="#5a3a22"/><stop offset=".3" stop-color="#b17542"/><stop offset=".55" stop-color="#c78d56"/><stop offset=".85" stop-color="#8b5630"/><stop offset="1" stop-color="#4a2e1b"/></linearGradient>
+          <linearGradient id="tg" x1="0" x2="1"><stop offset="0" stop-color="#8a6a22"/><stop offset=".4" stop-color="#f4de92"/><stop offset="1" stop-color="#8f6f26"/></linearGradient>
+        </defs>
+        <ellipse cx="80" cy="280" rx="64" ry="7" fill="#000" opacity=".3"/>
+        <ellipse cx="80" cy="48" rx="48" ry="12" fill="#1d120b"/>
+        <g id="sticks"></g>
+        <path d="M32 48 A48 12 0 0 0 128 48 L124 262 A44 12 0 0 1 36 262 Z" fill="url(#tw)"/>
+        <g fill="none" stroke="#000" stroke-opacity=".13" stroke-width="1.2"><path d="M52 62 L50 262"/><path d="M104 62 L106 262"/><path d="M80 66 L80 270"/></g>
+        <path d="M33 72 A47 12 0 0 0 127 72" fill="none" stroke="url(#tg)" stroke-width="8"/>
+        <path d="M36 246 A44 11 0 0 0 124 246" fill="none" stroke="url(#tg)" stroke-width="8"/>
+        <rect x="62" y="96" width="36" height="128" fill="#f1e6c8" stroke="url(#tg)" stroke-width="2.5"/>
+        <g font-size="25" fill="#2a1d14" text-anchor="middle" style="font-family:var(--serif);font-weight:900"><text x="80" y="128">祈</text><text x="80" y="160">愿</text><text x="80" y="192">签</text></g>
+        <circle cx="80" cy="208" r="4" fill="#c8372d"/>
+        <ellipse cx="50" cy="150" rx="7" ry="80" fill="#fff" opacity=".13"/>
+      </svg>
+    </button>
+  </div>
+
+  <div class="modal" id="modal" hidden>
+    <div class="note" id="note">
+      <div class="roll"><i></i><i></i></div>
+      <div class="paper"><div class="paper-in"><div class="paper-body">
+        <div class="tag"><span class="seal" aria-hidden="true">愿</span><span>所求 · <span id="noteCat"></span></span></div>
+        <label for="wish" style="position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)">你的心愿</label>
+        <textarea class="wish" id="wish" maxlength="60" rows="5"></textarea>
+        <div class="count"><span id="cnt">0</span> / 60</div>
+      </div></div></div>
+      <div class="roll"><i></i><i></i></div>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="back" type="button">重选</button>
+      <button class="primary" id="ok" type="button" disabled>确定</button>
+    </div>
+  </div>
+
+  <div class="done" id="done" hidden>
+    <div class="note result" id="result">
+      <div class="roll"><i></i><i></i></div>
+      <div class="paper"><div class="paper-in"><div class="paper-body">
+        <span class="seal" aria-hidden="true" style="width:34px;height:34px;font-size:22px">愿</span>
+        <h2>祈祷成功</h2>
+        <p class="sub">已祈愿完毕</p>
+        <p class="line">关于「<span id="resCat"></span>」的心愿，<br>已经投进愿箱。</p>
+      </div></div></div>
+      <div class="roll"><i></i><i></i></div>
+    </div>
+    <button class="primary" id="again" type="button">再拜一次</button>
+  </div>
+  <div class="petals" id="petals" hidden></div>
+  <div class="toast" id="toast" role="status" hidden></div>
+</main>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s)};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s))};
+var wait=function(ms){return new Promise(function(r){setTimeout(r,ms)})};
+var RM=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+var CATS=[
+  {k:'career',n:'事业',c:'#2f5fa8',on:'#fff',ph:'例：这次面试顺利通过'},
+  {k:'wealth',n:'财运',c:'#e0b21a',on:'#2a1d14',ph:'例：今年收入稳步增加'},
+  {k:'love',n:'婚姻',c:'#d96b8a',on:'#fff',ph:'例：遇到对的人'},
+  {k:'study',n:'学业',c:'#7a5cc4',on:'#fff',ph:'例：考试顺利上岸'},
+  {k:'social',n:'人缘',c:'#e8833a',on:'#fff',ph:'例：身边的人都对我好'},
+  {k:'health',n:'健康',c:'#1fa39a',on:'#fff',ph:'例：身体健康，睡得好'},
+  {k:'peace',n:'平安',c:'#c8372d',on:'#fff',ph:'例：家人平平安安'}
+];
+var HINTS={1:'选一幅卷轴，说出你所求',2:'把心愿写在纸条上',3:'折好纸条，投入愿箱',4:'轻点签筒，摇三下',5:'敲一敲铃，让神明听见',6:'祈祷成功'};
+
+var stage=$('#stage'),modal=$('#modal'),note=$('#note'),wish=$('#wish'),ok=$('#ok'),box=$('#box'),tube=$('#tube'),bell=$('#bell');
+var step=1,cat=null,shakes=0,busy=false;
+
+/* ---------- sound: synthesized once into WAV clips, played as real audio ---------- */
+var SR=22050,AC=null,muted=false,CLIP={},POOL=[],pi=0,unlocked=false,SILENT='',toastT=0;
+function mkbuf(d){return new Float32Array(Math.ceil(d*SR));}
+function addTone(b,f,t,d,v,type){
+  var s=Math.floor(t*SR),n=Math.floor(d*SR),k=6.9/d;
+  for(var i=0;i<n&&s+i<b.length;i++){
+    var x=i/SR,env=Math.min(1,x/.006)*Math.exp(-x*k),ph=6.283185307*f*x,w;
+    if(type==='square')w=Math.sin(ph)>=0?.6:-.6;
+    else if(type==='triangle')w=.6366*Math.asin(Math.sin(ph));
+    else w=Math.sin(ph);
+    b[s+i]+=w*env*v;
+  }
+}
+function addNoise(b,t,d,f,q,v,hp){
+  var s=Math.floor(t*SR),n=Math.floor(d*SR),k=6.9/d;
+  var w0=6.283185307*f/SR,al=Math.sin(w0)/(2*q),c=Math.cos(w0),b0,b1,b2,a0=1+al,a1=-2*c,a2=1-al;
+  if(hp){b0=(1+c)/2;b1=-(1+c);b2=(1+c)/2;}else{b0=al;b1=0;b2=-al;}
+  var x1=0,x2=0,y1=0,y2=0;
+  for(var i=0;i<n&&s+i<b.length;i++){
+    var x0=Math.random()*2-1,y0=(b0*x0+b1*x1+b2*x2-a1*y1-a2*y2)/a0;
+    x2=x1;x1=x0;y2=y1;y1=y0;
+    b[s+i]+=y0*Math.exp(-(i/SR)*k)*v;
+  }
+}
+function toWav(b){
+  var pk=0,i,n=b.length;
+  for(i=0;i<n;i++)pk=Math.max(pk,Math.abs(b[i]));
+  var g=pk?.9/pk:1,u=new Uint8Array(44+n*2),dv=new DataView(u.buffer);
+  function st(o,t){for(var j=0;j<t.length;j++)dv.setUint8(o+j,t.charCodeAt(j));}
+  st(0,'RIFF');dv.setUint32(4,36+n*2,true);st(8,'WAVE');st(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+  dv.setUint32(24,SR,true);dv.setUint32(28,SR*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);st(36,'data');dv.setUint32(40,n*2,true);
+  for(i=0;i<n;i++)dv.setInt16(44+i*2,Math.max(-1,Math.min(1,b[i]*g))*32767,true);
+  var bin='';
+  for(i=0;i<u.length;i+=8192)bin+=String.fromCharCode.apply(null,u.subarray(i,i+8192));
+  return 'data:audio/wav;base64,'+btoa(bin);
+}
+function clip(name,b){CLIP[name]={data:b,url:toWav(b)};}
+(function render(){
+  var b;
+  b=mkbuf(.25);addTone(b,740,0,.1,.5,'triangle');addTone(b,1110,.03,.08,.25,'sine');clip('tick',b);
+  b=mkbuf(.3);addNoise(b,0,.14,2600,.7,1,true);addNoise(b,.07,.1,3400,.7,.7,true);clip('fold',b);
+  b=mkbuf(1.3);addTone(b,140,0,.14,1,'triangle');addTone(b,2093,.02,1,.45,'sine');addTone(b,3136,.06,.8,.3,'sine');addTone(b,4186,.1,.5,.15,'sine');clip('coin',b);
+  b=mkbuf(.9);
+  for(var i=0;i<13;i++){var k=i*.05+Math.random()*.02;addNoise(b,k,.045,1800+Math.random()*1800,3,.9,false);if(i%2===0)addTone(b,300+Math.random()*250,k,.05,.4,'triangle');}
+  addTone(b,180,0,.1,.5,'triangle');clip('rattle',b);
+  b=mkbuf(2.8);
+  [0,.11,.22].forEach(function(o,j){
+    var v=[1,.75,.5][j];
+    [[1568,1],[2349,.5],[3136,.32],[4186,.16]].forEach(function(p){addTone(b,p[0]*(1+j*.004),o,1.9-j*.3,v*p[1],'sine');});
+  });
+  addTone(b,392,0,2.4,.3,'sine');clip('bell',b);
+  b=mkbuf(2);[784,988,1318].forEach(function(f,i){addTone(b,f,i*.12,1.5,.6,'sine');});clip('done',b);
+  SILENT=toWav(mkbuf(.05));
+  for(var p=0;p<6;p++)POOL.push(new Audio());
+})();
+
+function ctx(){
+  if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;}}
+  if(AC.state==='suspended'){try{AC.resume();}catch(e){}}
+  return AC;
+}
+function toast(m){
+  var t=$('#toast');t.textContent=m;t.hidden=false;
+  clearTimeout(toastT);toastT=setTimeout(function(){t.hidden=true;},3600);
+}
+function viaWebAudio(n){
+  var c=ctx();if(!c)return;
+  try{
+    var d=CLIP[n].data,bf=c.createBuffer(1,d.length,SR);
+    bf.getChannelData(0).set(d);
+    var sc=c.createBufferSource(),g=c.createGain();
+    sc.buffer=bf;g.gain.value=.9;sc.connect(g);g.connect(c.destination);sc.start(0);
+    if(c.state!=='running')toast('没声音？请关闭手机静音键并调大音量');
+  }catch(e){}
+}
+function play(n){
+  if(muted||!CLIP[n])return;
+  var a=POOL[pi++%POOL.length];
+  try{
+    a.pause();a.src=CLIP[n].url;a.currentTime=0;
+    var p=a.play();
+    if(p&&p.catch)p.catch(function(){viaWebAudio(n);});
+  }catch(e){viaWebAudio(n);}
+}
+function unlock(){
+  if(unlocked)return;
+  unlocked=true;
+  try{if(navigator.audioSession)navigator.audioSession.type='playback';}catch(e){}
+  POOL.forEach(function(a){
+    try{a.src=SILENT;var p=a.play();if(p&&p.then)p.then(function(){a.pause();}).catch(function(){});}catch(e){}
+  });
+  var c=ctx();
+  if(c){try{var sc=c.createBufferSource();sc.buffer=c.createBuffer(1,1,SR);sc.connect(c.destination);sc.start(0);}catch(e){}}
+}
+['pointerdown','touchend','click','keydown'].forEach(function(e){document.addEventListener(e,unlock,{passive:true});});
+$('#snd').addEventListener('click',function(){
+  muted=!muted;this.textContent=muted?'声音 关':'声音 开';this.setAttribute('aria-pressed',String(muted));
+  if(!muted)play('coin');
+});
+
+/* ---------- scenery built from data ---------- */
+(function(){
+  var LP=[[44,29],[97,34],[149,31],[251,31],[303,34],[356,29]];
+  $('#lanterns').insertAdjacentHTML('beforeend',LP.map(function(p){
+    return '<g transform="translate('+p[0]+' '+p[1]+') scale(.86)"><line y1="0" y2="7" stroke="#2a1612" stroke-width="1.2"/><rect x="-5" y="7" width="10" height="3" fill="#2a1612"/><ellipse cy="22" rx="11" ry="12.5" fill="url(#lg)"/><path d="M-9 14 Q0 18 9 14 M-11 22 H11 M-9 30 Q0 26 9 30" stroke="#a8321f" stroke-width=".8" fill="none" opacity=".7"/><rect x="-5" y="33" width="10" height="3" fill="#2a1612"/></g>';
+  }).join(''));
+
+  var tops=[10,22,6,26,14,24,8,18],xs=[48,56,64,72,82,92,100,110],rs=[-9,6,-4,8,-7,5,-2,9];
+  $('#sticks').innerHTML=xs.map(function(x,i){
+    var top=tops[i];
+    return '<g transform="rotate('+rs[i]+' '+x+' 56)"><g class="stick" style="--n:'+i+'"><rect x="'+(x-3.2)+'" y="'+top+'" width="6.4" height="118" rx="1" fill="#ead9a6"/><rect x="'+(x-3.2)+'" y="'+top+'" width="6.4" height="15" rx="1" fill="#c8372d"/><rect x="'+(x-3.2)+'" y="'+(top+22)+'" width="6.4" height="1.4" fill="#3b2416"/><rect x="'+(x-1)+'" y="'+(top+28)+'" width="2" height="6" fill="#3b2416" opacity=".7"/></g></g>';
+  }).join('');
+})();
+
+function scrollSVG(c,n,i){
+  return '<svg viewBox="0 0 100 176" aria-hidden="true" focusable="false"><defs>'+
+  '<linearGradient id="rg'+i+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".3"/></linearGradient>'+
+  '<linearGradient id="kg'+i+'" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a6a22"/><stop offset=".4" stop-color="#f4de92"/><stop offset="1" stop-color="#9b7a2c"/></linearGradient></defs>'+
+  '<rect x="10" y="12" width="80" height="152" fill="#f3ead2"/>'+
+  '<rect x="13.5" y="16" width="73" height="144" fill="none" stroke="#c9b27a" stroke-width=".8"/>'+
+  '<rect x="15.5" y="18" width="69" height="140" fill="none" stroke="#c9b27a" stroke-width=".6" stroke-dasharray="1.6 1.2"/>'+
+  '<rect x="21" y="30" width="58" height="116" fill="'+c+'" fill-opacity=".16" stroke="'+c+'" stroke-width="1.2"/>'+
+  '<circle cx="50" cy="41" r="2.2" fill="'+c+'"/><circle cx="50" cy="135" r="2.2" fill="'+c+'"/>'+
+  '<g text-anchor="middle" font-size="27" fill="#2a1d14" style="font-family:var(--serif);font-weight:900"><text x="50" y="82">'+n.charAt(0)+'</text><text x="50" y="114">'+n.charAt(1)+'</text></g>'+
+  [5,157].map(function(y){return '<rect x="5" y="'+y+'" width="90" height="14" rx="7" fill="'+c+'"/><rect x="5" y="'+y+'" width="90" height="14" rx="7" fill="url(#rg'+i+')"/><rect x="0" y="'+(y-2)+'" width="9" height="18" rx="3" fill="url(#kg'+i+')"/><rect x="91" y="'+(y-2)+'" width="9" height="18" rx="3" fill="url(#kg'+i+')"/>';}).join('')+
+  '</svg>';
+}
+CATS.forEach(function(c,i){
+  var b=document.createElement('button');
+  b.type='button';b.className='scroll';b.style.setProperty('--i',i);b.style.setProperty('--c',c.c);b.setAttribute('aria-label',c.n);
+  b.innerHTML=scrollSVG(c.c,c.n,i);
+  b.addEventListener('click',function(){pick(c,b);});
+  $(i<4?'#rack1':'#rack2').appendChild(b);
+});
+
+/* ---------- steps ---------- */
+function goStep(n){
+  step=n;
+  var d=n>=5?4:n;
+  $$('#steps li').forEach(function(li){
+    var k=+li.dataset.s;
+    li.classList.toggle('on',k===d&&n<6);
+    li.classList.toggle('done',k<d||n===6);
+  });
+  $('#hint').textContent=HINTS[n];
+  $('#racks').hidden=n>=4;
+  $('#paneShake').hidden=n!==4;
+  $('#paneBell').hidden=n!==5;
+  tube.classList.toggle('hot',n===4);
+}
+
+/* ---------- 1 → 2 ---------- */
+function pick(c,btn){
+  if(busy||step!==1)return;
+  busy=true;cat=c;
+  $('#racks').classList.add('has-pick');btn.classList.add('picked');
+  play('tick');
+  setTimeout(function(){openNote();busy=false;},RM?0:420);
+}
+function openNote(){
+  note.style.setProperty('--c',cat.c);note.style.setProperty('--on',cat.on);
+  $('#noteCat').textContent=cat.n;wish.placeholder=cat.ph;
+  modal.classList.remove('leaving','hide-note');modal.hidden=false;
+  note.classList.remove('open');void note.offsetWidth;note.classList.add('open');
+  goStep(2);
+  setTimeout(function(){if(step===2)wish.focus({preventScroll:true});},RM?0:760);
+}
+function unpick(){
+  $('#racks').classList.remove('has-pick');
+  $$('.scroll.picked').forEach(function(b){b.classList.remove('picked');});
+}
+async function closeNote(){
+  if(step!==2)return;
+  wish.blur();note.classList.remove('open');modal.classList.add('leaving');
+  await wait(RM?0:350);
+  modal.hidden=true;unpick();goStep(1);
+}
+wish.addEventListener('input',function(){
+  $('#cnt').textContent=wish.value.length;
+  ok.disabled=!wish.value.trim();
+});
+wish.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key==='Enter')submit();});
+document.addEventListener('keydown',function(e){if(e.key==='Escape')closeNote();});
+$('#back').addEventListener('click',closeNote);
+ok.addEventListener('click',submit);
+
+/* ---------- 3: fold, fly, drop ---------- */
+function mkClone(W,H,text){
+  var c=note.cloneNode(true);
+  c.removeAttribute('id');
+  $$('[id]',c).forEach(function(e){e.removeAttribute('id');});
+  var d=document.createElement('div');d.className='wish';d.textContent=text;
+  c.querySelector('textarea').replaceWith(d);
+  var ct=c.querySelector('.count');if(ct)ct.remove();
+  var lb=c.querySelector('label');if(lb)lb.remove();
+  c.style.cssText='position:absolute;left:0;top:0;margin:0;filter:none;width:'+W+'px;height:'+H+'px';
+  return c;
+}
+function bumpBox(){box.classList.remove('bump');void box.offsetWidth;box.classList.add('bump');}
+
+async function submit(){
+  var text=wish.value.trim();
+  if(!text||step!==2)return;
+  goStep(3);play('tick');wish.blur();
+
+  if(RM){
+    modal.hidden=true;bumpBox();play('coin');await wait(500);goStep(4);return;
+  }
+
+  var sr=stage.getBoundingClientRect(),nr=note.getBoundingClientRect();
+  var W=nr.width,H=nr.height,t=H/3;
+  var fly=document.createElement('div');
+  fly.className='fly';
+  fly.style.cssText='left:'+(nr.left-sr.left)+'px;top:'+(nr.top-sr.top)+'px;width:'+W+'px;height:'+H+'px';
+  fly.style.setProperty('--c',cat.c);
+  fly.innerHTML=
+    '<div class="flyer" style="top:'+t+'px;height:'+t+'px">'+
+      '<div class="face"><div class="in" style="top:'+(-t)+'px"></div></div>'+
+      '<div class="p pa" style="height:'+t+'px"><div class="face"><div class="in" style="top:0"></div></div><div class="face back"></div></div>'+
+      '<div class="p pc" style="height:'+t+'px"><div class="face"><div class="in" style="top:'+(-2*t)+'px"></div></div><div class="face back"></div></div>'+
+    '</div><i class="tie"></i>';
+  $$('.in',fly).forEach(function(n){n.style.width=W+'px';n.style.height=H+'px';n.appendChild(mkClone(W,H,text));});
+  stage.appendChild(fly);
+  modal.classList.add('leaving','hide-note');
+
+  var A=$('.pa',fly),C=$('.pc',fly),tie=$('.tie',fly);
+  var ease='cubic-bezier(.45,0,.2,1)';
+  await wait(120);
+  play('fold');
+  await C.animate([{transform:'translateZ(1px) rotateX(0deg)'},{transform:'translateZ(1px) rotateX(180deg)'}],{duration:520,easing:ease,fill:'forwards'}).finished;
+  play('fold');
+  await A.animate([{transform:'translateZ(2px) rotateX(0deg)'},{transform:'translateZ(2px) rotateX(-180deg)'}],{duration:520,easing:ease,fill:'forwards'}).finished;
+  await tie.animate([{opacity:0},{opacity:1}],{duration:220,fill:'forwards'}).finished;
+  await wait(120);
+
+  modal.hidden=true;modal.classList.remove('leaving','hide-note');
+  fly.style.zIndex=20;
+
+  var sl=$('#slot').getBoundingClientRect();
+  var tx=(sl.left+sl.width/2)-(nr.left+W/2);
+  var ty=(sl.top+sl.height*.15)-(nr.top+H/2);
+  var s=Math.min(.24,(sl.width*.6)/W);
+  var flight=fly.animate([
+    {transform:'translate(0,0) scale(1) rotate(0deg)',easing:'cubic-bezier(.3,.1,.5,1)'},
+    {offset:.5,transform:'translate('+(tx*.55)+'px,'+(ty*.55-110)+'px) scale(.55) rotate(-14deg)',easing:'cubic-bezier(.4,0,.6,1)'},
+    {offset:.8,transform:'translate('+tx+'px,'+(ty-8)+'px) scale('+s+') rotate(-4deg)',easing:'ease-in'},
+    {transform:'translate('+tx+'px,'+(ty+38)+'px) scale('+s+') rotate(0deg)'}
+  ],{duration:1350,fill:'forwards'});
+  await flight.finished;
+  fly.remove();
+  bumpBox();play('coin');
+  await wait(900);
+  shakes=0;$$('#beads i').forEach(function(i){i.classList.remove('on');});
+  goStep(4);
+}
+
+/* ---------- 4: shake the tube ---------- */
+function shakeTube(){
+  tube.classList.remove('shake');void tube.offsetWidth;tube.classList.add('shake');play('rattle');
+}
+tube.addEventListener('animationend',function(e){if(e.target===tube)tube.classList.remove('shake');});
+tube.addEventListener('click',async function(){
+  if(step===3||busy)return;
+  shakeTube();
+  if(step!==4)return;
+  shakes+=1;
+  $$('#beads i').forEach(function(i,k){i.classList.toggle('on',k<shakes);});
+  if(shakes>=3){
+    busy=true;
+    await wait(1000);
+    goStep(5);busy=false;
+  }
+});
+
+/* ---------- 5: ring the bell → done ---------- */
+bell.addEventListener('click',async function(){
+  if(step!==5||busy)return;
+  busy=true;
+  bell.classList.remove('ring');void bell.offsetWidth;bell.classList.add('ring');
+  play('bell');
+  await wait(RM?300:1700);
+  finish();busy=false;
+});
+function finish(){
+  goStep(6);
+  $('#resCat').textContent=cat.n;
+  var r=$('#result');
+  r.style.setProperty('--c',cat.c);r.style.setProperty('--on',cat.on);
+  r.classList.remove('open');
+  $('#done').hidden=false;void r.offsetWidth;r.classList.add('open');
+  makePetals();play('done');
+}
+function makePetals(){
+  var p=$('#petals');p.innerHTML='';
+  if(RM){p.hidden=true;return;}
+  for(var i=0;i<30;i++){
+    var e=document.createElement('i');
+    e.style.cssText='left:'+(Math.random()*100)+'%;--s:'+(8+Math.random()*10)+'px;--d:'+(5+Math.random()*5)+'s;--dl:'+(-Math.random()*8)+'s;--x:'+((Math.random()*2-1)*70)+'px';
+    p.appendChild(e);
+  }
+  p.hidden=false;
+}
+$('#again').addEventListener('click',function(){
+  $('#done').hidden=true;$('#petals').hidden=true;$('#petals').innerHTML='';
+  wish.value='';$('#cnt').textContent='0';ok.disabled=true;
+  bell.classList.remove('ring');shakes=0;cat=null;
+  unpick();goStep(1);
+});
+
+goStep(1);
+})();
+</script>
+
+</body>
+</html>
