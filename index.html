@@ -3,9 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<style>html{color-scheme:dark}body{margin:0}</style>
-</head>
-<body>
 <title>电子拜拜</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -27,6 +24,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{height:100%}
 body{margin:0;background:var(--night);color:var(--washi);font-family:var(--serif);overflow:hidden;-webkit-tap-highlight-color:transparent}
 button{font-family:inherit;color:inherit}
@@ -58,7 +56,7 @@ h1{margin:0;font-weight:900;font-size:clamp(24px,7.4cqw,32px);letter-spacing:.16
 .steps{list-style:none;margin:0;padding:0;display:flex;gap:4px;flex:none}
 .steps li{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;border:1px solid rgba(244,236,214,.5);background:rgba(20,14,40,.35);opacity:.7;transition:.3s}
 .steps li.on{background:var(--gold);color:var(--ink);border-color:var(--gold);opacity:1;scale:1.12}
-.steps li.done{background:rgba(244,236,214,.85);color:var(--ink);opacity:.9}
+.steps li.fin{background:rgba(244,236,214,.85);color:var(--ink);opacity:.9}
 
 /* middle */
 .pick{position:relative;z-index:6;flex:1;min-height:0;display:grid;place-items:center;padding:6px 16px}
@@ -169,7 +167,8 @@ textarea.wish::placeholder{color:rgba(42,29,20,.4);font-family:var(--serif);font
   .paper{transition:none}
 }
 </style>
-
+</head>
+<body>
 <main class="stage" id="stage">
   <svg class="lanterns" id="lanterns" viewBox="0 0 400 68" aria-hidden="true">
     <defs><radialGradient id="lg" cx=".5" cy=".4" r=".65"><stop offset="0" stop-color="#ffe3a0"/><stop offset=".55" stop-color="#f58f3b"/><stop offset="1" stop-color="#c8372d"/></radialGradient></defs>
@@ -484,7 +483,7 @@ function goStep(n){
   $$('#steps li').forEach(function(li){
     var k=+li.dataset.s;
     li.classList.toggle('on',k===d&&n<6);
-    li.classList.toggle('done',k<d||n===6);
+    li.classList.toggle('fin',k<d||n===6);
   });
   $('#hint').textContent=HINTS[n];
   $('#racks').hidden=n>=4;
@@ -654,6 +653,5 @@ $('#again').addEventListener('click',function(){
 goStep(1);
 })();
 </script>
-
 </body>
 </html>
